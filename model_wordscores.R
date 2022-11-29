@@ -227,7 +227,7 @@ party_lr_movement <- ches_all_de_color %>%
     geom_point() +
     geom_text(aes(label = paste(party, year, " ")), family = "Corbel", show.legend = F, nudge_y = -0.25) +
     theme_minimal() +
-    theme(text = element_text(family = "Corbel")) +
+    theme(text = element_text(family = "Corbel"), legend.position = "top") +
     geom_vline(xintercept = 5, alpha = 0.25) +
     geom_hline(yintercept = 5, alpha = 0.25) +
     scale_x_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) +
@@ -244,6 +244,10 @@ party_lr_movement <- ches_all_de_color %>%
 
 party_lr_movement
 
+anim_save(
+    "figures/party_lr_movement.gif",
+    animation = party_lr_movement
+)
 
 normalize_fun <- function() {
     
