@@ -1,0 +1,122 @@
+---
+title: "wordfish"
+output: html_document
+date: "2022-11-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+load(file='dfm_raw.rda')
+load(file='corpus_et_19.rda')
+
+#head(docvars(corpus_et_19))
+#docvars(dfm_raw)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(quanteda)
+library(quanteda.textmodels)
+library(quanteda.textplots)
+```
+
+```{r}
+dfm_party <- dfm_raw %>% 
+    dfm_group(party_short) %>% 
+    dfm_trim(min_termfreq = 25) %>% 
+    dfm_subset(!(party_short %in% c("Fraktionslos", "not found")))%>% dfm_remove(c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen", "schon", "kolleginnen","präsident"))
+```
+
+```{r}
+model_1 <- textmodel_wordfish(dfm_party, dir = c(4,2))
+summary(model_1)
+```
+
+```{r}
+textplot_scale1d(model_1)
+```
+```{r}
+textplot_scale1d(model_1,
+margin = "features",  highlighted = c("flüchtlinge", "krieg", "identität", "kohl", "bedrohung", "zukunft", "energie"))
+```
+
+```{r}
+dfm_session_party<- dfm_raw %>%  dfm_subset(!(party_short %in% c("Fraktionslos", "not found")))%>%
+    dfm_group(groups = interaction(party_short, session)) %>% 
+    dfm_trim(min_termfreq = 25) %>%dfm_remove(c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen", "schon", "kolleginnen","präsident"))
+
+docsession <- paste(docvars(dfm_session_party, "session"))
+docparty<- paste(docvars(dfm_session_party, "party_short"))
+```
+
+```{r}
+#subset
+dfm_session_party_sub<-dfm_session_party%>% dfm_subset(session %in% c(18:23))%>%dfm_subset(!session==19)
+docsession <- paste(docvars(dfm_session_party_sub, "session"))
+docparty<- paste(docvars(dfm_session_party_sub, "party_short"))
+```
+
+```{r}
+model_2 <- textmodel_wordfish(dfm_session_party_sub, dir = c(4,2))
+summary(model_2)
+```
+
+
+```{r}
+textplot_scale1d(model_2, doclabels = docparty)
+
+textplot_scale1d(model_2, doclabels = docsession)
+
+textplot_scale1d(model_2, doclabels = docsession, groups = docparty)
+```
+
+```{r}
+textplot_scale1d(model_2,
+margin = "features",  highlighted = c("flüchtlinge", "krieg", "identität", "kohl", "bedrohung", "zukunft", "energie"))
+```
+
+
+```{r}
+group_session <- function(session) {
+    session <- session * 10
+    
+    if (nchar(session) == 2) {
+        return(str_sub(session, 2, 2))
+    } 
+    if (nchar(session) == 3) {
+        return(str_sub(session, 1, 1))
+    }
+    if (nchar(session) == 4) {
+        return(str_sub(session, 1, 2))
+    }
+}
+
+dfm_raw$session_group <- map_chr(
+    dfm_raw$session, ~ group_session(.x)
+)
+
+
+dfm_session_party_grouped<- dfm_raw %>%  dfm_subset(!(party_short %in% c("Fraktionslos", "not found")))%>%
+    dfm_group(groups = interaction(party_short, session_group)) %>% 
+    dfm_trim(min_termfreq = 25) %>%dfm_remove(c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen", "schon", "kolleginnen","präsident"))
+
+docsession <- paste(docvars(dfm_session_party_grouped, "session_group"))
+docparty<- paste(docvars(dfm_session_party_grouped, "party_short"))
+```
+
+```{r}
+model_3 <- textmodel_wordfish(dfm_session_party_grouped, dir = c(4,2))
+summary(model_3)
+```
+
+```{r}
+textplot_scale1d(model_3, doclabels = docparty)
+
+textplot_scale1d(model_3, doclabels = docsession)
+
+textplot_scale1d(model_3, doclabels = docsession, groups = docparty)
+```
