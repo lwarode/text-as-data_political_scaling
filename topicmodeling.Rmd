@@ -1,0 +1,68 @@
+---
+title: "topicmodeling"
+author: "Laura Menicacci"
+date: "2022-11-26"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(quanteda)
+library(stm)
+```
+
+
+```{r}
+load("data_processed/dfm_raw.rda")
+```
+
+
+```{r}
+grouped <- dfm_raw %>% 
+  dfm_remove(c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen")) %>% # schon
+  dfm_group(session)
+ 
+# remove numbers 
+# group each session by 10/20 and run ten topic modeling for each of them to see if fucking klima comes up
+
+try <- grouped %>%
+  dfm_subset(session %in% c(25:75))
+```
+
+
+```{r}
+# stm <- stm(try, K = 20) # basic
+
+storage <- searchK(try, K = c(7, 10, 12))
+```
+
+
+
+```{r}
+# model with spectral decomposition 
+
+spectral <- stm(grouped, K = 10, max.em.its = 75, init.type = "Spectral")
+```
+```{r}
+labelTopics(spectral) # explain FREX
+```
+
+```{r}
+findThoughts(spectral, topics = c(16), n = 4) #documents mostly associated with topic
+```
+
+```{r}
+plot(spectral, type = "summary", xlim = c(0, 0.3))
+```
+
+
+---------------------------------------
+```{r}
+# model selection
+
+mselection <- selectModel(try, K = 15, max.em.its = 75, seed = 8458159)
+
+plotModels(mselection, legend.position = "bottomright")
+```
+
+
