@@ -9,6 +9,7 @@ output: html_document
 library(tidyverse)
 library(quanteda)
 library(stm)
+library(tidymodels)
 ```
 
 
@@ -18,22 +19,99 @@ load("data_processed/dfm_raw.rda")
 
 
 ```{r}
+removeCommonTerms <- function (x, pct) 
+{
+    stopifnot(inherits(x, c("DocumentTermMatrix", "TermDocumentMatrix")), 
+        is.numeric(pct), pct > 0, pct < 1)
+    m <- if (inherits(x, "DocumentTermMatrix")) 
+        t(x)
+    else x
+    t <- table(m$i) < m$ncol * (pct)
+    termIndex <- as.numeric(names(t[t]))
+    if (inherits(x, "DocumentTermMatrix")) 
+        x[, termIndex]
+    else x[termIndex, ]
+    
+}
+
+
+
+
+```
+
+
+```{r}
+stopwords1 <- c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen", "schon", "kolleginnen")
+
+corpus_et_19 <- speeches_et_19 %>%
+    left_join(factions %>% 
+                  mutate(id = as.double(id)), 
+              by = c("faction_id" = "id")) %>% 
+    mutate(id = id %>% as.character()) %>% 
+    rename(party_short = abbreviation) %>% 
+    corpus(
+        docid_field = "id", 
+        unique_docnames = FALSE,
+        text_field = "speech_content"
+    ) %>% 
+    tokens(remove_punct = TRUE, remove_numbers = TRUE) %>%
+    tokens_tolower() %>%
+    tokens_remove(stopwords("german"), stopwords1)
+```
+
+
+```{r}
+
+stopwords1 <- c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen", "schon", "kolleginnen", "1", "2", "frau", "präsident", "zwei")
+  
 grouped <- dfm_raw %>% 
-  dfm_remove(c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen")) %>% # schon
+  dfm(removeNumbers = TRUE) %>% # does not work
+  dfm_remove(stopwords1) %>% 
   dfm_group(session)
+  
+
+sample <- dfm_raw %>% 
+  dfm_sample(by = session, size = 20)
+  
+
  
 # remove numbers 
-# group each session by 10/20 and run ten topic modeling for each of them to see if fucking klima comes up
+# group each session by 10/20/50 and run ten topic modeling for each of them to see if fucking klima comes up
 
 try <- grouped %>%
-  dfm_subset(session %in% c(25:75))
+  dfm_subset(session %in% c(190:239))
+
+```
+
+one topic modeling per session 
+
+
+
+```{r}
+group_session <- function(session) {
+    session <- session * 10
+    
+    if (nchar(session) == 2) {
+        return(str_sub(session, 2, 2))
+    } 
+    if (nchar(session) == 3) {
+        return(str_sub(session, 1, 1))
+    }
+    if (nchar(session) == 4) {
+        return(str_sub(session, 1, 2))
+    }
+}
+
+```
+```{r}
+topfeatures(try, n = 20, scheme = "docfreq")
 ```
 
 
 ```{r}
 # stm <- stm(try, K = 20) # basic
 
-storage <- searchK(try, K = c(7, 10, 12))
+storage <- searchK(try, K = c(7, 10, 12), replace = TRUE)
 ```
 
 
@@ -41,28 +119,47 @@ storage <- searchK(try, K = c(7, 10, 12))
 ```{r}
 # model with spectral decomposition 
 
-spectral <- stm(grouped, K = 10, max.em.its = 75, init.type = "Spectral")
+spectral <- stm(try, K = 20, max.em.its = 75, init.type = "Spectral", verbose = FALSE)
 ```
 ```{r}
 labelTopics(spectral) # explain FREX
 ```
 
 ```{r}
-findThoughts(spectral, topics = c(16), n = 4) #documents mostly associated with topic
+findThoughts(spectral, topics = 1) #documents mostly associated with topic
 ```
 
 ```{r}
 plot(spectral, type = "summary", xlim = c(0, 0.3))
 ```
+```{r}
+td <- tidy(spectral)
+
+td %>%
+    group_by(topic) %>%
+    top_n(10, beta) %>%
+    ungroup() %>%
+    mutate(topic = paste0("Topic ", topic),
+           term = reorder_within(term, beta, topic)) %>%
+    ggplot(aes(term, beta, fill = as.factor(topic))) +
+    geom_col(alpha = 0.8, show.legend = FALSE) +
+    facet_wrap(~ topic, scales = "free_y") +
+    coord_flip() +
+    scale_x_reordered() +
+    labs(x = NULL, y = expression(beta),
+         title = "Highest word probabilities for each topic",
+         subtitle = "Different words are associated with different topics")
+```
+
+
 
 
 ---------------------------------------
-```{r}
-# model selection
+TO DO: 
 
-mselection <- selectModel(try, K = 15, max.em.its = 75, seed = 8458159)
-
-plotModels(mselection, legend.position = "bottomright")
-```
+- perform topic modeling every 50 sessions: 5 times (?)
+- inspect top representing topic --> top words, top documents
+- select only 10 top documents
+- perform wordscores for those 10 topics ? 
 
 
