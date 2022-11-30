@@ -39,6 +39,7 @@ summary(model_1)
 ```{r}
 textplot_scale1d(model_1)
 ```
+
 ```{r}
 textplot_scale1d(model_1,
 margin = "features",  highlighted = c("flüchtlinge", "krieg", "identität", "kohl", "bedrohung", "zukunft", "energie"))
@@ -119,4 +120,62 @@ textplot_scale1d(model_3, doclabels = docparty)
 textplot_scale1d(model_3, doclabels = docsession)
 
 textplot_scale1d(model_3, doclabels = docsession, groups = docparty)
+```
+
+```{r}
+dfm_clima<-dfm_raw %>%  dfm_subset(!(party_short %in% c("Fraktionslos", "not found")))%>% dfm_subset(session_group %in% c(11))%>%
+    dfm_group(groups = interaction(party_short, session_group)) %>% 
+    dfm_trim(min_termfreq = 25) %>%dfm_remove(c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen", "schon", "kolleginnen","präsident"))
+
+
+docsession <- paste(docvars(dfm_clima, "session_group"))
+docparty<- paste(docvars(dfm_clima, "party_short"))
+```
+
+```{r}
+model_4 <- textmodel_wordfish(dfm_clima, dir = c(5,4))
+summary(model_4)
+
+```
+```{r}
+textplot_scale1d(model_4, doclabels = docparty)
+
+textplot_scale1d(model_4, doclabels = docsession)
+
+textplot_scale1d(model_4, doclabels = docsession, groups = docparty)
+
+
+textplot_scale1d(model_4,
+margin = "features",  highlighted = c("klima", "energien", "klimapaket","klimaschutz", "co2-preis", "deals"))
+```
+
+
+```{r}
+
+dfm_security<-dfm_raw %>%  dfm_subset(!(party_short %in% c("Fraktionslos", "not found")))%>% dfm_subset(session_group %in% c(4))%>%
+    dfm_group(groups = interaction(party_short, session_group)) %>% 
+    dfm_trim(min_termfreq = 25) %>%dfm_remove(c("dass", "0", "müssen", "herr", "ja", "kollegen", "herren", "mehr", "menschen", "damen", "dank", "vielen", "schon", "kolleginnen","präsident"))
+
+
+docsession <- paste(docvars(dfm_security, "session_group"))
+docparty<- paste(docvars(dfm_security, "party_short"))
+```
+
+```{r}
+model_5 <- textmodel_wordfish(dfm_security, dir = c(4,2))
+summary(model_5)
+
+```
+
+```{r}
+textplot_scale1d(model_5, doclabels = docparty)
+
+textplot_scale1d(model_5, doclabels = docsession)
+
+textplot_scale1d(model_5, doclabels = docsession, groups = docparty)
+
+
+textplot_scale1d(model_5,
+margin = "features",  highlighted = c("russland", "syrien", "nationen", "unionen", "staaten", "flüchtlinge", "eu", "migranten"))
+
 ```
