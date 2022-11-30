@@ -264,6 +264,3 @@ theta[1,1:16]
 ###################### wordscores for the new dfm
 
 
-
-
-
