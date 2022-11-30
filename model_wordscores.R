@@ -78,9 +78,9 @@ ches_all_de_scores <- ches_all_de %>%
     ))) %>%
     bind_rows()
 
-?bind_rows
+# ?bind_rows
 
-ches_all_de_scores %>% bind_rows()
+# ches_all_de_scores %>% bind_rows()
 
 cdu_csu_weight(ches_all_de, eu_position)
 
@@ -286,7 +286,7 @@ party_lr <- ches_all_de_color %>%
     scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) +
     scale_color_manual(values = party_colors_vec) +
     labs(
-        # title = 'Year: {frame_time}',
+        title = 'Ideological Position of German Parties, 1999-2019',
         x = "Left-Right Economical",
         y = "GAL-TAN",
         color = "Party (Faction)"
@@ -297,8 +297,8 @@ party_lr
 ggsave(
     "figures/party_lr.png",
     party_lr,
-    width = 8,
-    height = 7,
+    width = 7,
+    height = 7 * (12/10),
     dpi = 300
 )
 
@@ -323,7 +323,7 @@ group_session <- function(session) {
 
 ## 2 APPROACHES
 # APPROACH 1: group by both session and party and 
-# APPROACH 2: group by party and apply approach per every session and build function to store predictions
+# APPROACH 2: group by party and apply approach per every session and build function to store predictions --> APPLIED
 
 ches_lrecon_de <- ches_scores %>% pull(lrecon)
 ches_galtan_de <- ches_scores %>% pull(galtan)
@@ -331,15 +331,15 @@ ches_galtan_de <- ches_scores %>% pull(galtan)
 dfm_raw_2 <- dfm_raw %>% 
     dfm_subset(!party_short %in% c("not found", "Fraktionslos")) 
 
-dfm_full_session <- dfm_raw_2 %>% 
-    dfm_subset(!session %in% c(19))
+# dfm_full_session <- dfm_raw_2 %>% 
+#     dfm_subset(!session %in% c(19))
 
 
 
 
-    dfm_subset(session == 1) %>% 
-    dfm_group(party_short) %>% 
-    .$party_short
+    # dfm_subset(session == 1) %>% 
+    # dfm_group(party_short) %>% 
+    # .$party_short
 
 
 sessionwise_party_scores <- function(dfm, session_nr, score) {
@@ -370,7 +370,8 @@ sessionwise_party_scores <- function(dfm, session_nr, score) {
     
     output_list <- list(
         party = names(pred_model[["fit"]]),
-        score = pred_model[["fit"]]
+        score = pred_model[["fit"]],
+        se_score = pred_model[["se.fit"]]
     )
 
     return(output_list)
@@ -378,7 +379,7 @@ sessionwise_party_scores <- function(dfm, session_nr, score) {
 
 dfm_full_session <- dfm_raw_2 %>% 
     dfm_subset(session != 19)
-    dfm_subset(!session %in% c(19))
+    # dfm_subset(!session %in% c(19))
 
 # dfm_full_session$session %>% unique %>% sort
 
@@ -387,6 +388,8 @@ ches_scores %>% pull(party) %>% unique
 ches_lrecon <- ches_scores %>% pull(lrecon)
 names(ches_lrecon) <- ches_scores_2 %>% pull(party_new)
 ches_lrecon
+
+sessionwise_party_scores(dfm_raw_2, 20, ches_lrecon)
 
 models_list_lrecon <- map(
     (dfm_full_session$session %>% unique %>% sort),
@@ -397,7 +400,8 @@ models_list_lrecon <- map(
 
 models_df_lrecon <- models_list_lrecon %>% 
     bind_rows(.id = "session_nr") %>% 
-    rename(lrecon_wordscore = score)
+    rename(lrecon_wordscore = score,
+           se_lrecon_wordscore = se_score)
 
 
 # galtan wordscores
@@ -415,7 +419,8 @@ models_list_galtan <- map(
 
 models_df_galtan <- models_list_galtan %>% 
     bind_rows(.id = "session_nr") %>% 
-    rename(galtan_wordscore = score)
+    rename(galtan_wordscore = score,
+           se_galtan_wordscore = se_score)
 
 
 
@@ -511,9 +516,127 @@ ggsave(
 
 
 
+# add standard errors to plot ---------------------------------------------
 
 
+party_lr_movement_wordscores_se <- models_df_both %>% 
+    mutate(
+        party = case_when(
+            party == "Grüne" ~ "GRUNEN",
+            party == "DIE LINKE." ~ "LINKE",
+            TRUE ~ party
+        )
+    ) %>% 
+    # filter(!party %in% c("CDU", "CSU")) %>% 
+    filter(party %in% names(party_colors_vec)) %>% 
+    mutate(session_nr = as.integer(session_nr)) %>% 
+    ggplot(aes(x = lrecon_wordscore, y = galtan_wordscore, color = party)) +
+    # geom_point() +
+    geom_pointrange(
+        aes(
+            ymin = galtan_wordscore - (se_galtan_wordscore * 1.96),
+            ymax = galtan_wordscore + (se_galtan_wordscore * 1.96)
+        ),
+        # alpha = 0.25
+    ) +
+    geom_linerange(
+        aes(
+            xmin = lrecon_wordscore - (se_lrecon_wordscore * 1.96),
+            xmax = lrecon_wordscore + (se_lrecon_wordscore * 1.96)
+        ),
+        # alpha = 0.25
+    ) +
+    # ggpointdensity::geom_pointdensity() +
+    # geom_hex(aes(fill = party))+
+    # geom_text(aes(label = paste(party, session_nr, " ")), family = "Corbel", show.legend = F, nudge_y = -0.0025) +
+    theme_minimal() +
+    theme(text = element_text(family = "Corbel"), legend.position = "top") +
+    # geom_vline(xintercept = 5, alpha = 0.25) +
+    # geom_hline(yintercept = 5, alpha = 0.25) +
+    # scale_x_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) +
+    # scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) +
+    scale_color_manual(values = party_colors_vec) +
+    labs(
+        title = 'Session (LP 19): {frame_time}',
+        x = "Left-Right Economical (Wordscore Estimate)",
+        y = "GAL-TAN (Wordscore Estimate)",
+        color = "Party (Faction)"
+    ) +
+    transition_time(session_nr) +
+    ease_aes('linear')
 
+party_lr_movement_wordscores_se
+
+anim_save(
+    "figures/party_lr_movement_wordscores_se.gif",
+    animation = party_lr_movement_wordscores_se,
+    fps = 4
+)
+
+anim_save(
+    "figures/party_lr_movement_wordscores_se_high_res.gif",
+    animation = party_lr_movement_wordscores_se,
+    res = 180,
+    width = 1000,
+    height = 1200,
+    fps = 4
+)
+
+party_lr_wordscores_se <- models_df_both %>% 
+    mutate(
+        party = case_when(
+            party == "Grüne" ~ "GRUNEN",
+            party == "DIE LINKE." ~ "LINKE",
+            TRUE ~ party
+        )
+    ) %>% 
+    # filter(!party %in% c("CDU", "CSU")) %>% 
+    filter(party %in% names(party_colors_vec)) %>% 
+    mutate(session_nr = as.integer(session_nr)) %>% 
+    ggplot(aes(x = lrecon_wordscore, y = galtan_wordscore, color = party)) +
+    # geom_point() +
+    geom_pointrange(
+        aes(
+            ymin = galtan_wordscore - (se_galtan_wordscore * 1.96),
+            ymax = galtan_wordscore + (se_galtan_wordscore * 1.96)
+        ),
+        alpha = 0.25
+    ) +
+    geom_linerange(
+        aes(
+            xmin = lrecon_wordscore - (se_lrecon_wordscore * 1.96),
+            xmax = lrecon_wordscore + (se_lrecon_wordscore * 1.96)
+        ),
+        alpha = 0.25
+    ) +
+    # ggpointdensity::geom_pointdensity() +
+    # geom_hex(aes(fill = party))+
+    # geom_text(aes(label = paste(party, session_nr, " ")), family = "Corbel", show.legend = F, nudge_y = -0.0025) +
+    theme_minimal() +
+    theme(text = element_text(family = "Corbel"), legend.position = "top") +
+    # geom_vline(xintercept = 5, alpha = 0.25) +
+    # geom_hline(yintercept = 5, alpha = 0.25) +
+    # scale_x_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) +
+    # scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) +
+    scale_color_manual(values = party_colors_vec) +
+    # scale_fill_manual(values = party_colors_vec) +
+    labs(
+        title = 'Wordscore Estimates for LP19',
+        x = "Left-Right Economical (Wordscore Estimate)",
+        y = "GAL-TAN (Wordscore Estimate)",
+        color = "Party (Faction)"
+    )
+
+# ?geom_point
+party_lr_wordscores_se
+
+ggsave(
+    "figures/party_lr_wordscores_se.png",
+    party_lr_wordscores_se,
+    width = 8,
+    height = 7,
+    dpi = 300
+)
 
 # party_session_scores_lrecon <- list()
 # 
@@ -555,101 +678,101 @@ ggsave(
 # 
 # names(pred_model_galtan[["fit"]])
 
-dfm_session_party <- dfm_raw %>% 
-    dfm_group(groups = interaction(party_short, session)) %>% 
-    dfm_subset(!party_short %in% c("not found", "Fraktionslos")) %>% 
-    dfm_trim(min_termfreq = 25)
-
-ches_scores %>% pull(galtan)
-ches_scores %>% pull(lrecon)
-
-
-ches_scores %>% pull(lrgen)
-
-# ndoc(dfm_session_party$party_short)
-
-dfm_party$party_short
-dfm_session_party
-# dfm_subset(
-#     dfm_session_party, 
-#     !party_short %in% c("not found", "Fraktionslos")) %>% 
-#     dfm_sort() %>% 
-#     docvars(party_short)
-
-
-
-dfm_agg_session_party <- dfm_raw 
-dfm_agg_session_party$lrgen <- ches_scores %>% pull(lrgen)
-dfm_party$galtan <- ches_scores %>% pull(galtan)
-dfm_party$lrecon <- ches_scores %>% pull(lrecon)
-dfm_party$eu_position <- ches_scores %>% pull(eu_position)
-dfm_agg_session_party$session_group <- map_chr(
-    dfm_agg_session_party$session, ~ group_session(.x)
-)
-dfm_agg_session_party <- dfm_agg_session_party %>% 
-    dfm_group(groups = interaction(session_group, party_short)) %>% 
-    dfm_trim(min_termfreq = 25)
-
-# add scale scores for wordscores approach
-dfm_agg_session_party$lrgen <- ches_scores %>% pull(lrgen)
-dfm_party$galtan <- ches_scores %>% pull(galtan)
-dfm_party$lrecon <- ches_scores %>% pull(lrecon)
-dfm_party$eu_position <- ches_scores %>% pull(eu_position)
-
-# model GAL-TAN
-model_galtan_dfm_agg_session_party <- textmodel_wordscores(
-    dfm_agg_session_party, 
-    y = dfm_agg_session_party$galtan,
-    smooth = 1
-)
-
-pred_model_galtan_dfm_agg_session_party <- predict(
-    model_galtan_dfm_agg_session_party,
-    
-)
-
-
-# galtan
-model_galtan <- textmodel_wordscores(dfm_party, y = dfm_party$galtan, smooth = 1)
-pred_model_galtan <- predict(model_galtan, se.fit = TRUE)
-pred_model_galtan
-# textplot_scale1d(pred_model_galtan) 
-
-# lrecon
-model_lrecon <- textmodel_wordscores(dfm_party, y = dfm_party$lrecon, smooth = 1)
-pred_model_lrecon <- predict(model_lrecon, se.fit = TRUE, newdata = dfm_party)
-# textplot_scale1d(pred_model_lrecon) 
-
-dfm_raw$session %>% unique() %>% length()
-dfm_raw$session %>% unique() %>% class()
-
-
-
-
-"42" %>% length()
-"42" %>% nchar()
-group_session(session = 2)
-
-
-"1110" %>% group_session()
-
-"30" %>% group_session()
-"110" %>% group_session()
-
-"110" %>% group_session()
-dfm_raw$session %>% unique() %>% multiply_by(10) %>% 
-    group_session()
-
-dfm_raw$session %>% unique() 
-dfm_raw$session %>% unique() %>% multiply_by(10)
-dfm_raw$session %>% unique() %>% multiply_by(10) %>% as.character() %>% 
-    map_chr(~ group_session(.)) %>% 
-    as.numeric()
-dfm_raw$session %>% unique() %>% multiply_by(10) %>% as.character() %>% str_sub(1, 1)
-
-
-
-dfm_raw$session %>% unique() %>% cut_width(width = length(239/10))
+# dfm_session_party <- dfm_raw %>% 
+#     dfm_group(groups = interaction(party_short, session)) %>% 
+#     dfm_subset(!party_short %in% c("not found", "Fraktionslos")) %>% 
+#     dfm_trim(min_termfreq = 25)
+# 
+# ches_scores %>% pull(galtan)
+# ches_scores %>% pull(lrecon)
+# 
+# 
+# ches_scores %>% pull(lrgen)
+# 
+# # ndoc(dfm_session_party$party_short)
+# 
+# dfm_party$party_short
+# dfm_session_party
+# # dfm_subset(
+# #     dfm_session_party, 
+# #     !party_short %in% c("not found", "Fraktionslos")) %>% 
+# #     dfm_sort() %>% 
+# #     docvars(party_short)
+# 
+# 
+# 
+# dfm_agg_session_party <- dfm_raw 
+# dfm_agg_session_party$lrgen <- ches_scores %>% pull(lrgen)
+# dfm_party$galtan <- ches_scores %>% pull(galtan)
+# dfm_party$lrecon <- ches_scores %>% pull(lrecon)
+# dfm_party$eu_position <- ches_scores %>% pull(eu_position)
+# dfm_agg_session_party$session_group <- map_chr(
+#     dfm_agg_session_party$session, ~ group_session(.x)
+# )
+# dfm_agg_session_party <- dfm_agg_session_party %>% 
+#     dfm_group(groups = interaction(session_group, party_short)) %>% 
+#     dfm_trim(min_termfreq = 25)
+# 
+# # add scale scores for wordscores approach
+# dfm_agg_session_party$lrgen <- ches_scores %>% pull(lrgen)
+# dfm_party$galtan <- ches_scores %>% pull(galtan)
+# dfm_party$lrecon <- ches_scores %>% pull(lrecon)
+# dfm_party$eu_position <- ches_scores %>% pull(eu_position)
+# 
+# # model GAL-TAN
+# model_galtan_dfm_agg_session_party <- textmodel_wordscores(
+#     dfm_agg_session_party, 
+#     y = dfm_agg_session_party$galtan,
+#     smooth = 1
+# )
+# 
+# pred_model_galtan_dfm_agg_session_party <- predict(
+#     model_galtan_dfm_agg_session_party,
+#     
+# )
+# 
+# 
+# # galtan
+# model_galtan <- textmodel_wordscores(dfm_party, y = dfm_party$galtan, smooth = 1)
+# pred_model_galtan <- predict(model_galtan, se.fit = TRUE)
+# pred_model_galtan
+# # textplot_scale1d(pred_model_galtan) 
+# 
+# # lrecon
+# model_lrecon <- textmodel_wordscores(dfm_party, y = dfm_party$lrecon, smooth = 1)
+# pred_model_lrecon <- predict(model_lrecon, se.fit = TRUE, newdata = dfm_party)
+# # textplot_scale1d(pred_model_lrecon) 
+# 
+# dfm_raw$session %>% unique() %>% length()
+# dfm_raw$session %>% unique() %>% class()
+# 
+# 
+# 
+# 
+# "42" %>% length()
+# "42" %>% nchar()
+# group_session(session = 2)
+# 
+# 
+# "1110" %>% group_session()
+# 
+# "30" %>% group_session()
+# "110" %>% group_session()
+# 
+# "110" %>% group_session()
+# dfm_raw$session %>% unique() %>% multiply_by(10) %>% 
+#     group_session()
+# 
+# dfm_raw$session %>% unique() 
+# dfm_raw$session %>% unique() %>% multiply_by(10)
+# dfm_raw$session %>% unique() %>% multiply_by(10) %>% as.character() %>% 
+#     map_chr(~ group_session(.)) %>% 
+#     as.numeric()
+# dfm_raw$session %>% unique() %>% multiply_by(10) %>% as.character() %>% str_sub(1, 1)
+# 
+# 
+# 
+# dfm_raw$session %>% unique() %>% cut_width(width = length(239/10))
 
 
 
