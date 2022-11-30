@@ -103,6 +103,7 @@ group_session <- function(session) {
 }
 
 ```
+
 ```{r}
 topfeatures(try, n = 20, scheme = "docfreq")
 ```
@@ -121,6 +122,7 @@ storage <- searchK(try, K = c(7, 10, 12), replace = TRUE)
 
 spectral <- stm(try, K = 20, max.em.its = 75, init.type = "Spectral", verbose = FALSE)
 ```
+
 ```{r}
 labelTopics(spectral) # explain FREX
 ```
@@ -132,6 +134,8 @@ findThoughts(spectral, topics = 1) #documents mostly associated with topic
 ```{r}
 plot(spectral, type = "summary", xlim = c(0, 0.3))
 ```
+
+
 ```{r}
 td <- tidy(spectral)
 

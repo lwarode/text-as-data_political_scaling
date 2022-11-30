@@ -1,0 +1,77 @@
+---
+title: "topic_modeling_plotting"
+author: "Laura Menicacci"
+date: "2022-11-30"
+output: html_document
+---
+
+```{r}
+load("models/model11.rda")
+load("models/model19.rda")
+load("models/model22.rda")
+load("models/model4.rda")
+
+
+library(kableExtra)
+# library(kable)
+```
+
+
+```{r}
+colnames(model11) <- paste("Topic", c(1:10))
+
+fig_model11 <- model11 %>%
+  kable(booktabs = TRUE, ) %>% 
+  kable_styling(bootstrap_options = c("hover", "condensed"), full_width = F, fixed_thead = T, font_size = 8) %>% 
+  add_header_above(c("FREX weighting per Topic" = 10)) 
+
+fig_model11 %>% 
+  save_kable("figures/FREXmodel11.png")
+
+```
+
+```{r}
+colnames(model22) <- paste("Topic", c(1:10))
+
+fig_model22 <- model22 %>%
+  kable(booktabs = TRUE, ) %>% 
+  kable_styling(bootstrap_options = c("hover", "condensed"), full_width = F, fixed_thead = T, font_size = 8) %>% 
+  add_header_above(c("FREX weighting per Topic" = 10)) 
+
+fig_model22 %>% 
+  save_kable("figures/FREXmodel22.png")
+
+```
+
+
+```{r}
+colnames(model19) <- paste("Topic", c(1:10))
+
+fig_model19 <- model19 %>%
+  kable(booktabs = TRUE, ) %>% 
+  kable_styling(bootstrap_options = c("hover", "condensed"), full_width = F, fixed_thead = T, font_size = 8) %>% 
+  add_header_above(c("FREX weighting per Topic" = 10)) 
+
+fig_model19 %>% 
+  save_kable("figures/FREXmodel19.png")
+```
+
+
+
+```{r}
+colnames(model4) <- paste("Topic", c(1:10))
+
+fig_model4 <- model4 %>%
+  kable(booktabs = TRUE, ) %>% 
+  kable_styling(bootstrap_options = c("hover", "condensed"), full_width = F, fixed_thead = T, font_size = 8) %>% 
+  add_header_above(c("FREX weighting per Topic" = 10)) 
+
+fig_model4 %>% 
+  save_kable("figures/FREXmodel4.png")
+```
+
+TO DO:
+  - explain FREX
+  - share of defense/klima topics per session batch 
+  - put tables one next to the other
+  

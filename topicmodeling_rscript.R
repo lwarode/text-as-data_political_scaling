@@ -48,9 +48,9 @@ run_model <- function (dfm, session_nr){
   # only keep FREX weighting
   topwords <- data.frame("features" = t(labels$frex))
   
-  #create list with all the models named to eventually plot the one we choose
+  # create list with all the models named to eventually plot the one we choose
   # models_list <- append(model)
-  #topwords_list <- append(topwords)
+  # topwords_list <- append(topwords)
   
   return(topwords)
 } 
@@ -255,9 +255,21 @@ if (!dir.exists("models")) {
 
 # find out which documents belong more to the selected topic 
 
+model11 %>%
+  ggplot(aes(term, beta, fill = as.factor(topic))) +
+  geom_col(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free_y") +
+  coord_flip() +
+  scale_x_reordered() +
+  labs(x = NULL, y = expression(beta),
+       title = "Highest word probabilities for each topic",
+       subtitle = "Different words are associated with different topics")
+
+
+
 # probability of a topic to belong to a specific document
-theta <- make.dt(model)
-theta[1,1:16]
+theta <- make.dt(model11)
+theta[1,1:10]
 
 # select documents in a specific dfm 
 
